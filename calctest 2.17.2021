@@ -1,0 +1,59 @@
+/\ENV-VARS
+# <[MadyraParser]>      /\ Quick Parser for Imports
+# <[MadyraMeshBox]>     /\ Hardened Network Testbox
+# <[MadyraVoid]>        /\ Voiding Error Handler
+# <[MadyraCUDABoost]    /\ Nvidia GPU Processing
+/\ENV-CONF
+box.global.CUDABoost.invoke >>> STR:"auto"
+
+/\MODULE-Import
+Functions >>> MadyraParser
+Functions >>> {
+    Function: HardLimit                 /\ Resource Capper
+    Function: MeshBox/ProxyBox          /\ Testbox ProxyHandler
+    Function: Dandelion                 /\ ThreadHandler Utility
+    Function: Overload                  /\ RAM ClockHandler
+}
+
+alloc(ThreadHandler, Threads=[Dandelion], HardUsage=[HardLimit])
+ThreadHandler >>> {
+
+    /\ Overload Limit Config / Sensor
+    box.global.Overload.limiter{
+        maxClock: +10%
+        maxPower: +10%
+    }
+    /\ Applying Thread
+    box.self(action.Dandelion.applyThread{[1][%COMMAND%]})
+
+}
+
+alloc(calc, Threads=[ThreadHandler], HardUsage=[HardLimit])
+calc >>> {
+    x >>> INT:[box.random.range(HEX:"2386F26FC0FFFF")]
+    y >>> INT:[box.random.range(HEX:"2386F26FC0FFFF")]
+
+    if box.global.CUDABoost.status >< STR:"True" >>> {
+
+        box.CUDABoost.(self.allow())
+    }
+    z = x^20 * y^20
+    box.print(INT;FLOAT;HEX:z)
+
+
+}
+
+alloc(main, Threads=[ThreadHandler], HardUsage=[HardLimit])
+main >>> {
+
+    range = INT:[box.random.range(INT:"20")]
+    
+    box.loop[count=range] >>> {
+
+        box.exc(FUNC:calc, ErrorHandler:box.MadyraVoid)
+    }
+
+
+}
+
+box.exc(FUNC:main, ErrorHandler:box.print(%ERROR%))
